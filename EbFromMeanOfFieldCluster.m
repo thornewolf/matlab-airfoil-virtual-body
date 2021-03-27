@@ -10,19 +10,34 @@ files = listFilesInDirectory("DataFiles/NACA0015PostStallRe375k");
 averaged_flow_field = loadAndAverageFlowFields(files);
 writematrix(averaged_flow_field, 'average_flow_field.txt');
 
-plotShrinkFactorOptions(averaged_flow_field);
-plotAndSaveContourForFlowField(averaged_flow_field);
+[X, Y, Z] = matrixToInterpolatedMatrix(averaged_flow_field, 1001);
+X = reshape(X, [1001^2, 1]);
+Y = reshape(Y, [1001^2, 1]);
+Z = reshape(Z, [1001^2, 1]);
+new_averaged_field = [X Y Z Z];
+size(new_averaged_field)
+
+plotShrinkFactorOptions(new_averaged_field);
+% plotAndSaveContourForFlowField(averaged_flow_field);
 
 
-function plotAndSaveContourForFlowField(A)
+function [X, Y, Z] = matrixToInterpolatedMatrix(A, interpolation_points)
     x = A(:,1);
     y = A(:,2);
     z = A(:,4);
 
-    xv = linspace(min(x),max(x),1001); % ‘x’ Vector For Interpolation
-    yv = linspace(min(y),max(y),1001); % ‘y’ Vector For Interpolation
-    [X,Y] = ndgrid(xv,yv); % Create Interpolation Grids
-    Z = griddata(x, y, z, X, Y); % Interpolated Grid Of ‘tally’ Values
+    % The flow field is defined at discrete locations. This griddata
+    % approach allows us to more granularly chop up the flow field, at the
+    % expense of "interpolating" rather than using "true" values.
+    xv = linspace(min(x),max(x),interpolation_points);
+    yv = linspace(min(y),max(y),interpolation_points);
+    [X,Y] = ndgrid(xv,yv);
+    Z = griddata(x, y, z, X, Y);
+end
+
+function plotAndSaveContourForFlowField(A)
+
+    [X, Y, Z] = matrixToInterpolatedMatrix(A, 1001);
 
     fig = figure();
     contourf(X,Y,Z, 60,'LineColor','none')
@@ -48,13 +63,14 @@ function plotAndSaveContourForFlowField(A)
 end
 
 function plotShrinkFactorOptions(flow_field)
-    minV = 11;
-    maxV = 13;
+    minV = 7;
+    maxV = 14;
+
 
     N_PLOTS = 9;
     indexes = 1:N_PLOTS;
     velocities = (indexes-1)/(N_PLOTS-1);
-    for shrinkFactor = linspace(0, 0.5, 5)
+    for shrinkFactor = linspace(0, 1, 3)
         fig = figure('Renderer', 'painters', 'Position',...
                      [200 200 900 1100]);
 
@@ -64,13 +80,14 @@ function plotShrinkFactorOptions(flow_field)
            [X,y] = getBoundary(flow_field, velocity, shrinkFactor);
            X = X(2:length(X));
            y = y(2:length(y));
+           size(X)
 
            hold on
            plot(X,y)
 
-           pbaspect([55 9 1])
-           xlim([-0.5, 5])
-           ylim([-0.3, 0.6])
+           pbaspect([11 1 1])
+           xlim([-0.5, 10])
+           ylim([-0.3, 1])
            title(sprintf('Velocity = %i m/s', velocity*(maxV-minV)+minV))
         end
         sgtitle(sprintf('EB Geometries with shrink factor of %f', shrinkFactor))
@@ -108,15 +125,15 @@ end
 
 function [X, y] = getBoundary(velocityMatrix, velocityFilterPercent, shrinkFactor)
 A = velocityMatrix;
-    minV = 11;
-    maxV = 13;
+    minV = 7;
+    maxV = 14;
 
 filter_value = minV + velocityFilterPercent*(maxV - minV);
 rows_to_keep = A(:,4) < filter_value;
 % also discard things that are really far
-rows_to_keep = rows_to_keep & (A(:,1) >= -0.1);
-rows_to_keep = rows_to_keep & (A(:,2) <= 0.5);
-rows_to_keep = rows_to_keep & (A(:,2) >= -0.5);
+rows_to_keep = rows_to_keep & (A(:,1) >= -0.3);
+rows_to_keep = rows_to_keep & (A(:,2) <= 2);
+rows_to_keep = rows_to_keep & (A(:,2) >= -2);
 
 A = A(rows_to_keep,:);
 k = boundary(A(:,1), A(:,2), shrinkFactor);
