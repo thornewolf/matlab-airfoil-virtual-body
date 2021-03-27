@@ -63,31 +63,33 @@ function plotAndSaveContourForFlowField(A)
 end
 
 function plotShrinkFactorOptions(flow_field)
-    minV = 7;
+    minV = 11.5;
     maxV = 14;
 
 
-    N_PLOTS = 9;
+    N_PLOTS = 10;
     indexes = 1:N_PLOTS;
     velocities = (indexes-1)/(N_PLOTS-1);
-    for shrinkFactor = linspace(0, 1, 3)
+    for shrinkFactor = linspace(0, 1, 7)
         fig = figure('Renderer', 'painters', 'Position',...
                      [200 200 900 1100]);
 
         for i = indexes
            velocity = velocities(i);
-           subplot(9,1,i)
+           subplot(N_PLOTS,1,i)
            [X,y] = getBoundary(flow_field, velocity, shrinkFactor);
            X = X(2:length(X));
            y = y(2:length(y));
-           size(X)
-
+           
            hold on
            plot(X,y)
 
-           pbaspect([11 1 1])
-           xlim([-0.5, 10])
-           ylim([-0.3, 1])
+           xrange = [-0.5, 15];
+           yrange = [-0.3, 2.3];
+           [n,m] = rat(xrange(2)-xrange(1), yrange(2)-yrange(1));
+           pbaspect([n m 1])
+           xlim(xrange)
+           ylim(yrange)
            title(sprintf('Velocity = %i m/s', velocity*(maxV-minV)+minV))
         end
         sgtitle(sprintf('EB Geometries with shrink factor of %f', shrinkFactor))
@@ -125,7 +127,7 @@ end
 
 function [X, y] = getBoundary(velocityMatrix, velocityFilterPercent, shrinkFactor)
 A = velocityMatrix;
-    minV = 7;
+    minV = 11.5;
     maxV = 14;
 
 filter_value = minV + velocityFilterPercent*(maxV - minV);
